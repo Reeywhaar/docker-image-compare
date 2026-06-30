@@ -1,0 +1,108 @@
+{{define "app"}}<form id="app">
+  <input type="hidden" id="dic-resolved" name="resolved">
+
+  {{/* image names round-trip as hidden inputs; the table below is the visible list */}}
+  {{range .Rows}}<input type="hidden" name="image" value="{{.Name}}">{{end}}
+
+  <div class="toolbar">
+    <button type="button" class="add" {{if not .CanAdd}}disabled title="Maximum of 10 images"{{else}}title="Add image"{{end}}
+            onclick="document.getElementById('add-dialog').showModal()">+</button>
+  </div>
+
+  {{if .Error}}<p class="error">{{.Error}}</p>{{end}}
+
+  {{if .ShowPlatform}}
+  <div class="platform">
+    <span class="platform-label">Platform</span>
+    <input type="hidden" id="dic-platform" name="platform" value="{{.Platform}}">
+    <div class="platforms">
+      {{if eq (len .Platforms) 1}}
+      <span class="plat active">{{index .Platforms 0}}</span>
+      {{else}}
+      {{range .Platforms}}
+      <button type="button" class="plat{{if eq . $.Platform}} active{{end}}"
+              onclick="document.getElementById('dic-platform').value='{{.}}'"
+              hx-post="/compare" hx-include="#app" hx-target="#app" hx-swap="outerHTML">{{.}}</button>
+      {{end}}
+      {{end}}
+    </div>
+  </div>
+  {{end}}
+
+  {{with .Result}}
+  <div class="shared">
+    <div class="shared-size {{.SharedClass}}">{{humanSize .Shared}}</div>
+    <div class="shared-label">shared (compressed) by all {{len .Images}} images &middot; {{.NumShared}} layer(s) &middot; {{printf "%.0f%%" .SharedPct}} of the smallest</div>
+  </div>
+  {{end}}
+
+  {{if .Rows}}
+  <div class="table-wrap">
+    <table class="totals">
+      <thead>
+        <tr><th></th><th>Image</th><th>Total</th><th>Shared</th><th>Unique</th><th>Layers</th><th></th></tr>
+      </thead>
+      <tbody>
+        {{range $i, $r := .Rows}}
+        <tr {{if $r.Error}}class="invalid"{{end}}>
+          <td class="slot-cell"><span class="slot">{{$r.Slot}}</span></td>
+          <td class="name">
+            {{$r.Name}}
+            {{if $r.HasDate}}<div class="row-date" title="{{isodate $r.Created}}">released {{reltime $r.Created}}</div>{{end}}
+            {{if $r.Error}}<div class="row-error">{{$r.Error}}</div>{{end}}
+          </td>
+          <td class="num">{{if $r.Compared}}{{humanSize $r.Total}}{{else}}&mdash;{{end}}</td>
+          <td class="num">{{if $r.Compared}}{{humanSize $r.Shared}}{{else}}&mdash;{{end}}</td>
+          <td class="num">{{if $r.Compared}}{{humanSize $r.Unique}}{{else}}&mdash;{{end}}</td>
+          <td class="num">{{if $r.Compared}}{{$r.NumLayers}}{{else}}&mdash;{{end}}</td>
+          <td class="row-actions">
+            {{if $r.Error}}
+            <button type="button" class="retry" title="Retry"
+                    hx-post="/compare" hx-include="#app" hx-target="#app" hx-swap="outerHTML">&#x21bb;</button>
+            {{end}}
+            <button type="button" class="remove" title="Remove"
+                    hx-post="/remove" hx-vals='{"remove":"{{$i}}"}'
+                    hx-include="#app" hx-target="#app" hx-swap="outerHTML">&times;</button>
+          </td>
+        </tr>
+        {{end}}
+      </tbody>
+    </table>
+  </div>
+  {{if .Result}}
+  <p class="note">Compressed layer sizes from the registry (download / storage size).
+    <code>docker images</code> shows the larger uncompressed on-disk size.
+    <strong>Shared</strong> = layers also in another image; <strong>Unique</strong> = layers in this image only.</p>
+  {{end}}
+  {{end}}
+
+  {{with .Diagram}}
+  {{$d := .}}
+  <div class="diagram-wrap">
+    <svg class="diagram" viewBox="0 0 {{.Width}} {{.Height}}" width="{{.Width}}" height="{{.Height}}"
+         role="img" aria-label="How well the images align — lines connect images that share layers; an arrow points from a base image to one fully derived from it">
+      <defs>
+        <marker id="dic-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+          <path class="diag-arrowhead" d="M0,0 L10,5 L0,10 z" />
+        </marker>
+      </defs>
+      {{range .Edges}}
+      <line class="diag-edge {{.Class}}" x1="{{.X1}}" y1="{{.Y1}}" x2="{{.X2}}" y2="{{.Y2}}"{{if .Directed}} marker-end="url(#dic-arrow)"{{end}} />
+      <text class="diag-edge-label {{.Class}}" x="{{.MX}}" y="{{.MY}}" text-anchor="middle" dominant-baseline="middle">{{.Pct}}%</text>
+      {{end}}
+      {{range .Nodes}}
+      <g class="diag-node">
+        <rect x="{{.X}}" y="{{.Y}}" width="{{$d.NodeW}}" height="{{$d.NodeH}}" rx="8" />
+        <foreignObject x="{{.X}}" y="{{.Y}}" width="{{$d.NodeW}}" height="{{$d.NodeH}}">
+          <div xmlns="http://www.w3.org/1999/xhtml" class="diag-label">
+            <span class="diag-slot">{{.Slot}}</span>
+            <span class="diag-name">{{.Name}}</span>
+          </div>
+        </foreignObject>
+      </g>
+      {{end}}
+    </svg>
+    <p class="diagram-hint">Lines connect images that share layers; the percentage is how well they align (shared size &divide; the smaller image). A <strong>100%</strong> link is drawn as an arrow — the base image is fully contained in the one it points to.</p>
+  </div>
+  {{end}}
+</form>{{end}}

@@ -1,0 +1,498 @@
+:root {
+  --bg: #e9eaec;
+  --panel: #ffffff;
+  --border: #d6d8db;
+  --text: #444444;
+  --muted: #888888;
+  --accent: #50728d;
+  --accent-soft: #50728d49;
+  --danger: #c72b26;
+  --warn: #cf7a18;
+  --ok: #699e4e;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+    sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+}
+
+main {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 2.5rem 1.25rem 4rem;
+}
+
+header h1 {
+  margin: 0 0 0.25rem;
+  font-size: 1.6rem;
+  font-weight: 600;
+}
+
+.sub {
+  margin: 0 0 2rem;
+  color: var(--muted);
+}
+
+/* Toolbar: add button + platform selector */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+}
+
+.slot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 6px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 0.85rem;
+  flex: none;
+}
+
+.remove,
+.retry {
+  background: none;
+  border: none;
+  color: var(--muted);
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 0.2rem;
+  flex: none;
+}
+.remove {
+  font-size: 1.3rem;
+}
+.retry {
+  font-size: 1.1rem;
+}
+.remove:hover {
+  color: var(--danger);
+}
+.retry:hover {
+  color: var(--accent);
+}
+
+.toolbar {
+  width: 100%;
+}
+.add {
+  width: 100%;
+  padding: 0.65rem;
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.add:hover {
+  filter: brightness(1.08);
+}
+.add:disabled {
+  background: transparent;
+  border-style: dashed;
+  color: var(--muted);
+  cursor: not-allowed;
+  filter: none;
+}
+
+/* Platform selector — tappable dashed links */
+.platform {
+  margin-top: 1.25rem;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.9rem;
+}
+.platform-label {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.platforms {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1rem;
+}
+.plat {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--accent);
+  font-size: 0.9rem;
+  padding: 0.3rem 0.1rem;
+  border-bottom: 1px dashed var(--accent);
+}
+.plat:hover {
+  color: var(--text);
+  border-bottom-color: var(--text);
+}
+.plat.active {
+  color: var(--text);
+  font-weight: 600;
+  border-bottom-style: solid;
+  border-bottom-color: var(--text);
+  cursor: default;
+}
+
+/* Result */
+.result {
+  margin-top: 1.5rem;
+}
+
+.shared {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  text-align: center;
+  margin: 1.5rem 0 1rem;
+}
+.shared-size {
+  font-size: 2.6rem;
+  font-weight: 700;
+  color: var(--ok);
+}
+.shared-size.low {
+  color: var(--danger);
+}
+.shared-size.mid {
+  color: var(--warn);
+}
+.shared-size.high {
+  color: var(--ok);
+}
+.shared-label {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+/* Relationship diagram */
+.diagram-wrap {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow-x: auto;
+}
+svg.diagram {
+  display: block;
+  margin: 0 auto;
+  max-width: 100%;
+  height: auto;
+}
+.diag-node rect {
+  fill: var(--panel);
+  stroke: var(--border);
+  stroke-width: 1.5;
+}
+/* Wrapping label via foreignObject: a slot badge + the (wrapping) image name. */
+.diag-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 100%;
+  padding: 0 12px;
+  box-sizing: border-box;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+.diag-slot {
+  flex: none;
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--muted);
+}
+.diag-name {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  line-height: 1.25;
+  color: var(--text);
+  word-break: break-all;
+}
+/* Lines connect images that share layers; color shows how well they align. */
+.diag-edge {
+  stroke: var(--muted);
+  stroke-width: 2;
+  fill: none;
+}
+.diag-edge.low {
+  stroke: var(--danger);
+}
+.diag-edge.mid {
+  stroke: var(--warn);
+}
+.diag-edge.high {
+  stroke: var(--ok);
+}
+.diag-arrowhead {
+  fill: context-stroke; /* arrowhead matches its line's color */
+}
+/* Alignment label on the line, with a panel-colored halo for legibility. */
+.diag-edge-label {
+  font-size: 11px;
+  font-weight: 700;
+  paint-order: stroke;
+  stroke: var(--panel);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}
+.diag-edge-label.low {
+  fill: var(--danger);
+}
+.diag-edge-label.mid {
+  fill: var(--warn);
+}
+.diag-edge-label.high {
+  fill: var(--ok);
+}
+.diagram-hint {
+  margin: 0.6rem 0 0;
+  color: var(--muted);
+  font-size: 0.72rem;
+  text-align: center;
+}
+
+.table-wrap {
+  margin-top: 1.5rem;
+  overflow-x: auto;
+}
+.shared + .table-wrap {
+  margin-top: 0;
+}
+table.totals {
+  width: 100%;
+  min-width: 540px;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+table.totals th {
+  text-align: left;
+  color: var(--muted);
+  font-weight: 500;
+  padding: 0.5rem 0.6rem;
+  border-bottom: 1px solid var(--border);
+}
+table.totals td {
+  padding: 0.55rem 0.6rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+table.totals tr:last-child td {
+  border-bottom: none;
+}
+/* Fixed columns: slot · name (flex) · total · shared · unique · layers · actions.
+   Numeric columns are right-aligned with comfortable, equal spacing. */
+table.totals th:nth-child(1),
+table.totals td:nth-child(1) {
+  width: 2.4rem;
+}
+table.totals th:nth-child(3),
+table.totals td:nth-child(3),
+table.totals th:nth-child(4),
+table.totals td:nth-child(4),
+table.totals th:nth-child(5),
+table.totals td:nth-child(5) {
+  width: 5.5rem;
+}
+table.totals th:nth-child(6),
+table.totals td:nth-child(6) {
+  width: 4rem;
+}
+table.totals th:nth-child(7),
+table.totals td:nth-child(7) {
+  width: 3.5rem;
+}
+table.totals th:nth-child(3),
+table.totals th:nth-child(4),
+table.totals th:nth-child(5),
+table.totals th:nth-child(6) {
+  text-align: right;
+}
+table.totals td.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+table.totals td.name {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+table.totals tr.invalid td {
+  background: #c0392b0a;
+}
+.row-date {
+  margin-top: 0.2rem;
+  font-size: 0.72rem;
+  color: var(--muted);
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  cursor: help;
+}
+.row-error {
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--danger);
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  overflow-wrap: anywhere;
+}
+.row-actions {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.note {
+  margin: 0.6rem 0.2rem 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+.note code {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  padding: 0.02rem 0.3rem;
+  border-radius: 4px;
+}
+
+.error {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  background: #c0392b14;
+  border: 1px solid var(--danger);
+  color: var(--danger);
+  font-size: 0.9rem;
+}
+
+/* Modal */
+dialog {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--panel);
+  color: var(--text);
+  padding: 1.5rem;
+  width: min(540px, 92vw);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+}
+dialog::backdrop {
+  background: rgba(0, 0, 0, 0.25);
+}
+dialog h3 {
+  margin: 0 0 1rem;
+  font-weight: 600;
+}
+dialog textarea {
+  display: block;
+  width: 100%;
+  padding: 0.6rem 0.7rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: #fafafa;
+  color: var(--text);
+  font-size: 0.9rem;
+  line-height: 1.6;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  resize: vertical;
+  min-height: 4.5rem;
+  white-space: pre;
+  overflow-wrap: normal;
+}
+dialog textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+dialog .hint {
+  color: var(--muted);
+  font-size: 0.8rem;
+  margin: 0.6rem 0 0;
+}
+.modal-error {
+  margin: 0.6rem 0 0;
+  padding: 0.5rem 0.7rem;
+  border-radius: 8px;
+  background: #c0392b14;
+  border: 1px solid var(--danger);
+  color: var(--danger);
+  font-size: 0.85rem;
+}
+dialog .hint code {
+  background: var(--bg);
+  padding: 0.05rem 0.3rem;
+  border-radius: 4px;
+}
+dialog menu {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin: 1.25rem 0 0;
+  padding: 0;
+}
+dialog button {
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+dialog button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+dialog button.secondary {
+  background: transparent;
+  color: var(--text);
+}
+dialog button[disabled] {
+  opacity: 0.9;
+  cursor: default;
+}
+
+/* Loading state: hide the label and show a centered spinner. */
+.is-loading {
+  position: relative;
+  color: transparent !important;
+  pointer-events: none;
+}
+.is-loading::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1rem;
+  height: 1rem;
+  margin: -0.5rem 0 0 -0.5rem;
+  border: 2px solid rgba(255, 255, 255, 0.45);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: dic-spin 0.6s linear infinite;
+}
+@keyframes dic-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
