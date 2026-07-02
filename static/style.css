@@ -242,8 +242,20 @@ svg.diagram {
 .diag-edge.high {
   stroke: var(--ok);
 }
+/* White underlay giving each connector a 1px outline (like the label halo),
+   so lines stay legible where they cross an unrelated block. */
+.diag-edge-halo {
+  stroke: var(--panel);
+  stroke-width: 4; /* 2px line + 1px border each side */
+  fill: none;
+  stroke-linecap: round;
+}
 .diag-arrowhead {
   fill: context-stroke; /* arrowhead matches its line's color */
+  stroke: var(--panel); /* matching 1px white outline */
+  stroke-width: 1.5;
+  paint-order: stroke;
+  stroke-linejoin: round;
 }
 /* Alignment label on the line, with a panel-colored halo for legibility. */
 .diag-edge-label {

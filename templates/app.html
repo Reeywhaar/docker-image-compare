@@ -86,10 +86,6 @@
           <path class="diag-arrowhead" d="M0,0 L10,5 L0,10 z" />
         </marker>
       </defs>
-      {{range .Edges}}
-      <line class="diag-edge {{.Class}}" x1="{{.X1}}" y1="{{.Y1}}" x2="{{.X2}}" y2="{{.Y2}}"{{if .Directed}} marker-end="url(#dic-arrow)"{{end}} />
-      <text class="diag-edge-label {{.Class}}" x="{{.MX}}" y="{{.MY}}" text-anchor="middle" dominant-baseline="middle">{{.Pct}}%</text>
-      {{end}}
       {{range .Nodes}}
       <g class="diag-node">
         <rect x="{{.X}}" y="{{.Y}}" width="{{$d.NodeW}}" height="{{$d.NodeH}}" rx="8" />
@@ -100,6 +96,12 @@
           </div>
         </foreignObject>
       </g>
+      {{end}}
+      {{/* Edges are drawn after nodes so connectors (and their white outline) stay on top even when a line passes over an unrelated block. */}}
+      {{range .Edges}}
+      <line class="diag-edge-halo" x1="{{.X1}}" y1="{{.Y1}}" x2="{{.X2}}" y2="{{.Y2}}" />
+      <line class="diag-edge {{.Class}}" x1="{{.X1}}" y1="{{.Y1}}" x2="{{.X2}}" y2="{{.Y2}}"{{if .Directed}} marker-end="url(#dic-arrow)"{{end}} />
+      <text class="diag-edge-label {{.Class}}" x="{{.MX}}" y="{{.MY}}" text-anchor="middle" dominant-baseline="middle">{{.Pct}}%</text>
       {{end}}
     </svg>
     <p class="diagram-hint">Lines connect images that share layers; the percentage is how well they align (shared size &divide; the smaller image). A <strong>100%</strong> link is drawn as an arrow — the base image is fully contained in the one it points to.</p>
