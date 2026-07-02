@@ -214,9 +214,25 @@ type basicCreds struct {
 	password string
 }
 
+// cacheTTL bounds how long fetched registry data is reused. Kept short so a moved tag
+// (repo:latest) doesn't serve stale layers for long, while still collapsing the burst of
+// repeated lookups a single add/remove/compare interaction triggers.
+const cacheTTL = time.Minute
+
 type cachedManifest struct {
 	body        []byte
 	contentType string
+	expires     time.Time
+}
+
+type cachedToken struct {
+	token   string
+	expires time.Time
+}
+
+type cachedConfig struct {
+	cfg     imageConfig
+	expires time.Time
 }
 
 // Client talks to OCI/Docker v2 registries using only the standard library.
@@ -227,7 +243,8 @@ type Client struct {
 
 	mu        sync.Mutex
 	manifests map[string]cachedManifest // key: registry/repo@ref
-	tokens    map[string]string         // key: registry/repo
+	tokens    map[string]cachedToken    // key: registry/repo
+	configs   map[string]cachedConfig   // key: registry/repo@digest
 }
 
 // NewClient returns a registry client, embedding the HOST env var in its User-Agent.
@@ -236,7 +253,8 @@ func NewClient() *Client {
 		hc:        &http.Client{Timeout: 30 * time.Second},
 		userAgent: buildUserAgent(os.Getenv("HOST")),
 		manifests: map[string]cachedManifest{},
-		tokens:    map[string]string{},
+		tokens:    map[string]cachedToken{},
+		configs:   map[string]cachedConfig{},
 	}
 }
 
@@ -308,9 +326,9 @@ func splitParams(s string) []string {
 func (rc *Client) token(ctx context.Context, host, repo string) (string, error) {
 	key := host + "/" + repo
 	rc.mu.Lock()
-	if t, ok := rc.tokens[key]; ok {
+	if t, ok := rc.tokens[key]; ok && time.Now().Before(t.expires) {
 		rc.mu.Unlock()
-		return t, nil
+		return t.token, nil
 	}
 	rc.mu.Unlock()
 
@@ -380,7 +398,7 @@ func (rc *Client) token(ctx context.Context, host, repo string) (string, error) 
 	}
 
 	rc.mu.Lock()
-	rc.tokens[key] = tok
+	rc.tokens[key] = cachedToken{token: tok, expires: time.Now().Add(cacheTTL)}
 	rc.mu.Unlock()
 	return tok, nil
 }
@@ -390,7 +408,7 @@ func (rc *Client) token(ctx context.Context, host, repo string) (string, error) 
 func (rc *Client) getManifest(ctx context.Context, registry, repo, ref string) (cachedManifest, error) {
 	key := registry + "/" + repo + "@" + ref
 	rc.mu.Lock()
-	if cm, ok := rc.manifests[key]; ok {
+	if cm, ok := rc.manifests[key]; ok && time.Now().Before(cm.expires) {
 		rc.mu.Unlock()
 		return cm, nil
 	}
@@ -431,7 +449,7 @@ func (rc *Client) getManifest(ctx context.Context, registry, repo, ref string) (
 		return cachedManifest{}, fmt.Errorf("registry returned %s for %s/%s:%s", resp.Status, registry, repo, ref)
 	}
 
-	cm := cachedManifest{body: body, contentType: resp.Header.Get("Content-Type")}
+	cm := cachedManifest{body: body, contentType: resp.Header.Get("Content-Type"), expires: time.Now().Add(cacheTTL)}
 	rc.mu.Lock()
 	rc.manifests[key] = cm
 	rc.mu.Unlock()
@@ -520,6 +538,14 @@ func (rc *Client) fetchConfig(ctx context.Context, r Ref, digest string) (imageC
 	if digest == "" {
 		return imageConfig{OS: "linux", Arch: "amd64"}, nil
 	}
+	key := r.registry + "/" + r.repo + "@" + digest
+	rc.mu.Lock()
+	if c, ok := rc.configs[key]; ok && time.Now().Before(c.expires) {
+		rc.mu.Unlock()
+		return c.cfg, nil
+	}
+	rc.mu.Unlock()
+
 	tok, err := rc.token(ctx, r.registry, r.repo)
 	if err != nil {
 		return imageConfig{}, err
@@ -550,7 +576,11 @@ func (rc *Client) fetchConfig(ctx context.Context, r Ref, digest string) (imageC
 	if err := json.NewDecoder(io.LimitReader(resp.Body, 4<<20)).Decode(&cfg); err != nil {
 		return imageConfig{}, err
 	}
-	return imageConfig{OS: cfg.OS, Arch: cfg.Arch, Variant: cfg.Variant, Created: ParseTime(cfg.Created)}, nil
+	ic := imageConfig{OS: cfg.OS, Arch: cfg.Arch, Variant: cfg.Variant, Created: ParseTime(cfg.Created)}
+	rc.mu.Lock()
+	rc.configs[key] = cachedConfig{cfg: ic, expires: time.Now().Add(cacheTTL)}
+	rc.mu.Unlock()
+	return ic, nil
 }
 
 // ParseTime parses an RFC3339(/Nano) timestamp, returning the zero time on failure.

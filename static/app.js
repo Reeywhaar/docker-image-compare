@@ -127,6 +127,13 @@
     return Array.isArray(m.manifests) && m.manifests.length > 0 && !(m.layers && m.layers.length);
   }
 
+  // Session caches: an image's manifest is immutable enough over a single session that we
+  // never need to re-resolve it. This is what stops every add/remove from re-fetching all
+  // images (the cause of registry 429s) — only genuinely new names hit the network, and a
+  // remove fetches nothing at all. Cleared only by a full page reload.
+  var imageCache = {}; // normalized name -> resolved image (platforms, digestByPlat, token)
+  var layersCache = {}; // name + "\n" + platform -> { layers, created }
+
   // resolveImage resolves an image's available platforms (and, for single-arch images,
   // its layers). Layers for a chosen index platform are fetched later by layersFor.
   async function resolveImage(name) {
@@ -174,6 +181,23 @@
     };
   }
 
+  // Cached wrappers around resolveImage/layersFor. A thrown resolution is not cached, so a
+  // transient failure can be retried; successful (and deterministic empty) results are kept.
+  async function resolveImageCached(name) {
+    if (imageCache[name]) return imageCache[name];
+    var img = await resolveImage(name);
+    imageCache[name] = img;
+    return img;
+  }
+
+  async function layersForCached(name, img, chosen) {
+    var key = name + "\n" + chosen;
+    if (layersCache[key]) return layersCache[key];
+    var info = await layersFor(img, chosen);
+    layersCache[key] = info;
+    return info;
+  }
+
   function pickPlatform(common, selected) {
     if (selected && common.indexOf(selected) >= 0) return selected;
     if (common.indexOf("linux/amd64") >= 0) return "linux/amd64";
@@ -208,7 +232,7 @@
     if (!names.length) return null;
     var selected = selectedPlatform();
 
-    var imgs = await Promise.all(names.map(resolveImage));
+    var imgs = await Promise.all(names.map(resolveImageCached));
 
     var common = imgs[0].platforms.slice();
     for (var i = 1; i < imgs.length; i++) {
@@ -218,7 +242,7 @@
     var chosen = common.length ? pickPlatform(common, selected) : "";
 
     return Promise.all(imgs.map(async function (img, idx) {
-      var info = chosen ? await layersFor(img, chosen) : { layers: [], created: "" };
+      var info = chosen ? await layersForCached(names[idx], img, chosen) : { layers: [], created: "" };
       return {
         name: names[idx],
         platforms: img.platforms,
